@@ -5,15 +5,19 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const mongoose = require('mongoose');
 
+const session = require('express-session');
+const MongoStore = require('connect-mongo')(session);
+
 const indexRouter = require('./routes/index');
 
-const app = express();
-
-mongoose.connect('mongodb://localhost/basic-auth', {
+mongoose.connect('mongodb://localhost/lab-express-basic-auth', {
   keepAlive: true,
   useNewUrlParser: true,
   reconnectTries: Number.MAX_VALUE
 });
+
+const app = express();
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
@@ -24,6 +28,19 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Session middleware
+app.use(session({
+  secret: "Secret",
+  cookie: { maxAge: 3600000 * 1 },	// 1 hour
+  resave: true,
+  saveUninitialized: true,
+  store: new MongoStore({
+    mongooseConnection: mongoose.connection,
+    ttl: 24 * 60 * 60 // Time to live - 1 day
+  })
+})); //CREATES req.session.currentUser if the user cookie is correct
+
+// Routes
 app.use('/', indexRouter);
 
 // -- 404 and error handler
